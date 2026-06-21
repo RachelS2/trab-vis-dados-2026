@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trabalho 02 - Visualização de Dados - 2026.2 - IC/UFF</title>
+  <link rel="stylesheet" href="/src/styles.css" />
+</head>
+
+<body>
+  <header>
+    <h1>E-Commerce Dashboard</h1>
+  </header>
+
+  <div class="filters">
+    <label>
+      Fonte de Tráfego:
+      <select id="traffic-filter">
+        <option value="">Todas</option>
+      </select>
+    </label>
+  </div>
+
+  <main class="dashboard">
+
+    <section>
+      <h2>Lucro ao Longo do Tempo (WHEN)</h2>
+      <svg id="time-chart" width="900" height="350"></svg>
+    </section>
+
+    <section>
+      <h2>Lucro por Categoria (WHAT)</h2>
+      <svg id="category-chart" width="900" height="400"></svg>
+    </section>
+
+    <section>
+      <h2>Lucro por País (WHERE)</h2>
+      <svg id="country-chart" width="900" height="400"></svg>
+    </section>
+
+  </main>
+
+  <div id="tooltip"></div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+
+</html>
