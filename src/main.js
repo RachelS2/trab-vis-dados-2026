@@ -104,8 +104,10 @@ async function renderProfitOverTime(ecommerce) {
 async function renderProfitByCountry(ecommerce) {
   /* Transformação 3.3.2.2 no Relatório: Agregações de Lucro por país. */
 
+  // Inicializa tooltip conforme declarado em index.html
   const tooltip = d3.select("#tooltip");
 
+  // seleciona dados a partir de agrupamentos e somas
   const data = await ecommerce.query(`
     SELECT
         Country,
@@ -176,16 +178,21 @@ async function renderProfitByCountry(ecommerce) {
 }
 
 async function renderProfitByCategory(ecommerce) {
+  // Inicializa tooltip conforme declarado em index.html
+  const tooltip = d3.select("#tooltip");
 
-  // Seleciona os dados: 
+  // Seleciona os dados de CATEGORIAS: 
   const data = await ecommerce.query(`
-        SELECT
-            Product_Category,
-            SUM(Profit_Amount) AS Profit
-        FROM ecommerce
-        GROUP BY Product_Category
-        ORDER BY Profit DESC
+      SELECT
+          Product_Category,
+          Product_Subcategory,
+          SUM(Profit_Amount) AS Profit
+      FROM ecommerce
+      GROUP BY Product_Category, Product_Subcategory
+      ORDER BY Profit DESC
     `);
+
+  const subMap = d3.group(data, d => d.Product_Category);
 
   // Seleciona o espaço para colocar o gráfico, definido em index.html
   const svg = d3.select("#category-chart");
@@ -225,7 +232,40 @@ async function renderProfitByCategory(ecommerce) {
     .attr("x", d => x(d.Product_Category))
     .attr("y", d => y(d.Profit))
     .attr("width", x.bandwidth())
-    .attr("height", d => innerHeight - y(d.Profit));
+    .attr("height", d => innerHeight - y(d.Profit))
+    .on("mouseover", (event, d) => { // Explicita lucro por país no hover da barra.
+      tooltip
+        .style("opacity", 1)
+        .html(`
+        <strong>${d.Product_Category}</strong><br/>
+        Lucro: ${d3.format(",.2f")(d.Profit)}
+      `);
+    })
+
+    .on("mousemove", (event) => {
+      tooltip
+        .style("left", (event.pageX + 10) + "px")
+        .style("top", (event.pageY + 10) + "px");
+    })
+
+    .on("mouseout", () => {
+      tooltip.style("opacity", 0);
+    })
+    .on("mouseover", (event, d) => {
+
+      const subs = subMap.get(d.Product_Category) || [];
+
+      tooltip
+        .style("opacity", 1)
+        .html(`
+      <strong>${d.Product_Category}</strong><br/>
+      Total: ${d3.format(",.2f")(d.Profit)}<br/><br/>
+      <u>Subcategorias:</u><br/>
+      ${subs.map(s =>
+        `${s.Product_Subcategory}: ${d3.format(",.2f")(s.Profit)}`
+      ).join("<br/>")}
+    `);
+    })
 
   g.append("g")
     .call(d3.axisLeft(y));
