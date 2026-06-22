@@ -136,6 +136,12 @@ export async function renderInsights(ecommerce, filters) {
     d3.select("#profit-insights-list"),
     [
       {
+        label: "Fonte de marketing",
+        value: topTraffic
+          ? `${topTraffic.Traffic_Source} (${profitFormat(topTraffic.Profit)})`
+          : "—"
+      },
+      {
         label: "Categoria",
         value: topCategory
           ? `${getPortugueseCategoryName(topCategory.Product_Category)} (${profitFormat(topCategory.Profit)})`
@@ -151,12 +157,6 @@ export async function renderInsights(ecommerce, filters) {
         label: "Trimestre",
         value: topQuarter
           ? `Q${topQuarter.Quarter} de ${topQuarter.Year} (${profitFormat(topQuarter.Profit)})`
-          : "—"
-      },
-      {
-        label: "Fonte de marketing",
-        value: topTraffic
-          ? `${topTraffic.Traffic_Source} (${profitFormat(topTraffic.Profit)})`
           : "—"
       }
     ]
