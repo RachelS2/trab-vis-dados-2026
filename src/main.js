@@ -8,7 +8,11 @@ import {
   ECommerce
 } from "./ecommerce";
 
-import {getPortugueseCountryName, getPortugueseSubCategoryName, getPortugueseCategoryName} from "./maps";
+import {
+  getPortugueseCountryName,
+  getPortugueseSubCategoryName,
+  getPortugueseCategoryName
+} from "./maps";
 
 // define valores para as margens
 const margin = {
@@ -28,22 +32,50 @@ const innerWidth = width - margin.left - margin.right;
 // Define altura interna
 const innerHeight = height - margin.top - margin.bottom;
 
-function getTrafficSourceWhereClause(choosenTrafficSource = "") {
-  // Monta clausula WHERE quando o usuário especifica alguma fonte de tráfego pela UI.
-  let whereClause = "";
-  console.log("Fonte de tráfego: " + choosenTrafficSource);
+// Variáveis globais que armazenam o filtro atual escolhido pelo usuário
+let selectedTrafficSource = null;
+let selectedCategory = null;
+let selectedCountry = null;
 
-  if (choosenTrafficSource && choosenTrafficSource !== "Todas") {
-    return `
-      WHERE Traffic_Source = '${choosenTrafficSource}'
-    `;
+function filterDataBy() {
+  // Monta clausula WHERE quando o usuário filtra alguma informação pela UI. 
+
+  const conditions = [];
+  console.log(selectedTrafficSource + " " + selectedCategory + " " + selectedCountry)
+
+  // Verifica se variáveis globais foram preenchidas
+  if (selectedTrafficSource) {
+    console.log(selectedTrafficSource)
+    conditions.push(
+      `Traffic_Source = '${selectedTrafficSource}'`
+    );
   }
-  return whereClause;
+
+  if (selectedCategory) {
+    conditions.push(
+      `Product_Category = '${selectedCategory}'`
+    );
+  }
+
+  if (selectedCountry) {
+    conditions.push(
+      `Country = '${selectedCountry}'`
+    );
+  }
+
+  if (conditions.length === 0) {
+    return "";
+  }
+  const WHERE_CLAUSE = `WHERE ${conditions.join(" AND ")}`;
+  console.log("where clause: " + WHERE_CLAUSE);
+  return WHERE_CLAUSE
+
 }
 
-async function renderProfitOverTime(ecommerce, choosenTrafficSource = "") {
+async function renderProfitOverTime(ecommerce) {
+  /* Transformação 3.3.2.2 no Relatório: Agregações de Lucro por TEMPO (WHEN). */
 
-  const whereClause = getTrafficSourceWhereClause(choosenTrafficSource);
+  const whereClause = filterDataBy();
 
   // Agrupa lucro por trimestres de cada ano do dataset (2023 a 2026)
   const data = await ecommerce.query(`
@@ -59,6 +91,7 @@ async function renderProfitOverTime(ecommerce, choosenTrafficSource = "") {
   `);
   const svg = d3.select("#time-chart");
 
+
   svg.attr("width", width)
     .attr("height", height);
 
@@ -72,10 +105,11 @@ async function renderProfitOverTime(ecommerce, choosenTrafficSource = "") {
     .domain(data.map(d => `${d.Year}-Q${d.Quarter}`))
     .range([0, innerWidth]);
 
-  console.log("Altura interna: " + innerHeight);
+
+  const max = d3.max(data, d => d.Profit);
 
   const y = d3.scaleLinear()
-    .domain([0, d3.max(data, d => d.Profit)])
+    .domain([0, max])
     .nice()
     .range([innerHeight, 0]);
 
@@ -197,14 +231,23 @@ async function renderProfitOverTime(ecommerce, choosenTrafficSource = "") {
     });
 }
 
-async function renderProfitByCountry(ecommerce, choosenTrafficSource) {
-  /* Transformação 3.3.2.2 no Relatório: Agregações de Lucro por país. */
+async function renderProfitByCountry(ecommerce) {
+  /* Transformação 3.3.2.2 no Relatório: Agregações de Lucro por PAÍS (WHERE). */
 
   // Inicializa tooltip conforme declarado em index.html
   const tooltip = d3.select("#tooltip");
 
-  // Pega a clausula where quando uma fonte de tráfego/marketing é especificada 
-  const whereClause = getTrafficSourceWhereClause(choosenTrafficSource);
+  // Anula a variável global para que a cláusula WHERE não filtre apenas 1 país para construção do gráfico:
+  let originalSelectedCountry = selectedCountry; // Armazena valor 
+  if (selectedCountry) {
+    selectedCountry = null;
+  }
+
+  // Monta a cláusula WHERE, considerando filtros de fontes de marketing, tempo e país:
+  const whereClause = filterDataBy();
+
+  // Reatribui variável global para não afetar os outros gráficos
+  selectedCountry = originalSelectedCountry;
 
   // seleciona dados a partir de agrupamentos e somas
   const data = await ecommerce.query(`
@@ -245,6 +288,29 @@ async function renderProfitByCountry(ecommerce, choosenTrafficSource) {
     .attr("height", y.bandwidth())
     .attr("width", d => x(d.profit))
     .attr("fill", "#4CAF50")
+    .on("click", async (event, d) => {
+
+      if (selectedCountry === d.Country) {
+        selectedCountry = null;
+      } else {
+        selectedCountry = d.Country;
+      }
+
+      console.log(selectedCountry);
+
+      await updateCharts(ecommerce);
+    })
+    .attr("opacity", d => {
+
+      if (
+        selectedCountry &&
+        selectedCountry !== d.Country
+      ) {
+
+        return 0.3;
+      }
+      return 1;
+    })
     .on("mouseover", (event, d) => { // Explicita lucro por país no hover da barra.
       tooltip
         .style("opacity", 1)
@@ -268,7 +334,7 @@ async function renderProfitByCountry(ecommerce, choosenTrafficSource) {
   g.append("g")
     .call(
       d3.axisLeft(y)
-      .tickFormat(getPortugueseCountryName)
+      .tickFormat(getPortugueseCountryName) // formata o nome do país em PT
     )
     .selectAll("text")
     .style("font-size", "11px");
@@ -284,12 +350,24 @@ async function renderProfitByCountry(ecommerce, choosenTrafficSource) {
     .selectAll("text")
     .style("font-size", "11px");
 }
-async function renderProfitByCategory(ecommerce, choosenTrafficSource) {
+
+async function renderProfitByCategory(ecommerce) {
+  /* Transformação 3.3.2.2 no Relatório: Agregações de Lucro por CATEGORIA (WHAT). */
+
   // Inicializa tooltip conforme declarado em index.html
   const tooltip = d3.select("#tooltip");
 
-  // Pega a clausula where quando uma fonte de tráfego/marketing é especificada 
-  const whereClause = getTrafficSourceWhereClause(choosenTrafficSource);
+  // Anula a variável global para que a cláusula WHERE não filtre apenas 1 categoria para construção do gráfico:
+  let originalSelectedCategory = selectedCategory; // Armazena valor 
+  if (selectedCategory) {
+    selectedCategory = null;
+  }
+
+  // Monta a cláusula WHERE, considerando filtros de fontes de marketing, tempo e país:
+  const whereClause = filterDataBy();
+
+  // Reatribui variável global para não afetar os outros gráficos
+  selectedCategory = originalSelectedCategory;
 
   // Seleciona os dados de CATEGORIAS: 
   const data = await ecommerce.query(`
@@ -313,13 +391,7 @@ async function renderProfitByCategory(ecommerce, choosenTrafficSource) {
   ${whereClause}
   GROUP BY Product_Category, Product_Subcategory
 `);
-  // const teste = await ecommerce.query(`
-  // SELECT
-  //   SUM(Profit_Amount) AS total
-  // FROM ecommerce
 
-  // `);
-  // console.log("LUCRO TOTAL " + teste?.[0]?.total)
   const subMap = d3.group(subData, d => d.Product_Category);
 
   // Seleciona o espaço para colocar o gráfico, definido em index.html
@@ -329,7 +401,7 @@ async function renderProfitByCategory(ecommerce, choosenTrafficSource) {
   svg.attr("width", width + 90)
     .attr("height", height);
 
-  
+
   // Armazena as categorias.
   const categories = data.map(d => getPortugueseCategoryName(d.Product_Category));
 
@@ -360,17 +432,19 @@ async function renderProfitByCategory(ecommerce, choosenTrafficSource) {
     .attr("y", d => y(d.Profit)) // Define eixo Y como o Lucro
     .attr("width", x.bandwidth())
     .attr("fill", "#1B5E20") // Define cor verde para as barras
-    .attr("height", d => innerHeight - y(d.Profit))
-    .on("mouseover", (event, d) => {
-      // Explicita lucro por categoria no hover.
-      tooltip
-        .style("opacity", 1)
-        .html(`
-        <strong>${getPortugueseCategoryName(d.Product_Category)}</strong><br/>
-        Lucro: ${d3.format(",.2f")(d.Profit)}
-      `);
-    })
 
+    .attr("opacity", d => {
+
+      if (
+        selectedCategory &&
+        selectedCategory !== d.Product_Category
+      ) {
+        return 0.3;
+      }
+
+      return 1;
+    })
+    .attr("height", d => innerHeight - y(d.Profit))
     .on("mousemove", (event) => {
       tooltip
         .style("left", (event.pageX + 10) + "px")
@@ -379,6 +453,18 @@ async function renderProfitByCategory(ecommerce, choosenTrafficSource) {
 
     .on("mouseout", () => {
       tooltip.style("opacity", 0);
+    })
+
+    // Monitora clique na barra da categoria, para filtrar os dados a partir da categoria escolhida.
+    .on("click", async (event, d) => {
+      console.log("categoria selecionada: " + selectedCategory);
+      if (selectedCategory === d.Product_Category) {
+        selectedCategory = null;
+      } else {
+        selectedCategory = d.Product_Category;
+      }
+
+      await updateCharts(ecommerce);
     })
     .on("mouseover", (event, d) => {
 
@@ -438,30 +524,22 @@ async function loadTrafficSourceFilter(ecommerce) {
     .text(d => d.Traffic_Source);
 }
 
+
 window.onload = async () => {
 
   // Inicializa banco de dados:
   const ecommerce = await main();
-  await renderProfitOverTime(ecommerce);
-  await renderProfitByCategory(ecommerce);
-  await renderProfitByCountry(ecommerce);
-  await loadTrafficSourceFilter(ecommerce);
+  loadTrafficSourceFilter(ecommerce); // Carrega filtros de fontes de marketing uma única vez
+  await updateCharts(ecommerce);
 
-  // Monitora mudanças no filtro de fonte de tráfego:
+  // Monitora mudanças no filtro de fonte de marketing:
   d3.select("#traffic-filter")
     .on("change", async function () {
 
-      // captura valor selecionado pelo usuário na lista suspensa
-      const selectedSource = this.value;
+      // captura valor selecionado pelo usuário e atribui a variável global
+      selectedTrafficSource = this.value;
 
-      // Reinicia todos os gráficos
-      d3.select("#time-chart").selectAll("*").remove();
-      d3.select("#category-chart").selectAll("*").remove();
-      d3.select("#country-chart").selectAll("*").remove();
-
-      await renderProfitOverTime(ecommerce, selectedSource);
-      await renderProfitByCategory(ecommerce, selectedSource);
-      await renderProfitByCountry(ecommerce, selectedSource);
+      await updateCharts(ecommerce); // Atualiza todos os gráficos considerando essa mudança nos filtros
     });
 }
 
@@ -476,4 +554,41 @@ async function main() {
     console.error(error);
     loadingStatus.text("Erro ao carregar dados. Verifique o console.");
   }
+}
+
+async function updateCharts(ecommerce) {
+  // Reinicia todos os gráficos
+  d3.select("#time-chart").selectAll("*").remove();
+  d3.select("#category-chart").selectAll("*").remove();
+  d3.select("#country-chart").selectAll("*").remove();
+
+  await Promise.all([
+    renderProfitOverTime(
+      ecommerce
+    ),
+
+    renderProfitByCategory(
+      ecommerce
+    ),
+
+    renderProfitByCountry(
+      ecommerce
+    )
+  ]);
+  verifyGraphsAccuracy(ecommerce);
+}
+
+async function verifyGraphsAccuracy(ecommerce) {
+
+  // OBS 1: Para testar a acurácia dos valores exibidos nos gráficos após aplicação de filtros, descomente o código abaixo e verifique se os valores impressos no terminal são iguais valores exibidos nos hovers.
+  // OBS 2.: Insira, EM INGLES, o país e a categoria que você filtrou pela tela na cláusula WHERE abaixo!
+  // OBS 3.: Para verificar os valores em inglês, acesse o arquivo maps.ts deste diretório.
+
+    const teste = await ecommerce.query(`
+    SELECT
+      SUM(Profit_Amount) AS Profit
+    FROM ecommerce
+    WHERE Country = 'India' and Product_Category = 'Books' -- INSIRA AQUI O QUE VOCÊ FILTROU (EM INGLÊS)!
+  `);
+  console.log(teste[0]?.Profit);
 }
