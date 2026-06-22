@@ -8,24 +8,13 @@ import {
   ECommerce
 } from "./ecommerce";
 
-async function main() {
-  try {
-
-    const ecommerce = new ECommerce();
-    await ecommerce.init();
-    return ecommerce;
-
-  } catch (error) {
-    console.error(error);
-    loadingStatus.text("Erro ao carregar dados. Verifique o console.");
-  }
-}
+import {getPortugueseCountryName, getPortugueseSubCategoryName, getPortugueseCategoryName} from "./maps";
 
 // define valores para as margens
 const margin = {
   top: 20,
   right: 100,
-  bottom: 40,
+  bottom: 70,
   left: 100
 };
 
@@ -51,6 +40,7 @@ function getTrafficSourceWhereClause(choosenTrafficSource = "") {
   }
   return whereClause;
 }
+
 async function renderProfitOverTime(ecommerce, choosenTrafficSource = "") {
 
   const whereClause = getTrafficSourceWhereClause(choosenTrafficSource);
@@ -103,7 +93,7 @@ async function renderProfitOverTime(ecommerce, choosenTrafficSource = "") {
       .tickFormat("")
     );
 
-  // Linha (coordenada X,Y)
+  // Linha represnentando oscilação no lucro por tempo (X,Y)
   g.append("path")
     .datum(data)
     .attr("fill", "none")
@@ -123,7 +113,7 @@ async function renderProfitOverTime(ecommerce, choosenTrafficSource = "") {
     .attr("stroke", "white")
     .attr("stroke-width", 1.5);
 
-  // Eixo X: apenas Q1, Q2...
+  // Eixo X (trimestres): Q1, Q2...
   g.append("g")
     .attr("transform", `translate(0,${innerHeight})`)
     .call(
@@ -131,12 +121,12 @@ async function renderProfitOverTime(ecommerce, choosenTrafficSource = "") {
       .tickFormat(d => d.split("-")[1])
     );
 
-  // Eixo Y
+  // Eixo Y 
   g.append("g")
     .call(
       d3.axisLeft(y)
       .ticks(5)
-      .tickFormat(d3.format(".2s"))
+      .tickFormat(d3.format(".0s")) // (converte valor de 1000 para 1k para maior clareza visual)
     );
 
   // ano que cada trimestre corresponde
@@ -181,6 +171,10 @@ async function renderProfitOverTime(ecommerce, choosenTrafficSource = "") {
       .attr("stroke-width", 1)
       .attr("stroke-dasharray", "4,4");
   });
+
+  g.append("g")
+    .selectAll("text")
+    .style("font-size", "11px")
 
   // Inicializa tooltip conforme declarado em index.html
   const tooltip = d3.select("#tooltip");
@@ -229,10 +223,10 @@ async function renderProfitByCountry(ecommerce, choosenTrafficSource) {
     .attr("height", height);
 
   const g = svg.append("g")
-    .attr("transform", `translate(${margin.left},${margin.top})`);
+    .attr("transform", `translate(${margin.left + 15},${margin.top})`);
 
   const y = d3.scaleBand()
-    .domain(data.map(d => d.Country))
+    .domain(data.map(d => getPortugueseCountryName(d.Country)))
     .range([0, innerHeight])
     .padding(0.2);
 
@@ -246,7 +240,7 @@ async function renderProfitByCountry(ecommerce, choosenTrafficSource) {
     .data(data)
     .enter()
     .append("rect")
-    .attr("y", d => y(d.Country))
+    .attr("y", d => y(getPortugueseCountryName(d.Country)))
     .attr("x", 0)
     .attr("height", y.bandwidth())
     .attr("width", d => x(d.profit))
@@ -255,7 +249,7 @@ async function renderProfitByCountry(ecommerce, choosenTrafficSource) {
       tooltip
         .style("opacity", 1)
         .html(`
-        <strong>${d.Country}</strong><br/>
+        <strong>${getPortugueseCountryName(d.Country)}</strong><br/>
         Lucro: ${d3.format(",.2f")(d.profit)}
       `);
     })
@@ -272,14 +266,24 @@ async function renderProfitByCountry(ecommerce, choosenTrafficSource) {
 
   // eixo Y (países)
   g.append("g")
-    .call(d3.axisLeft(y));
+    .call(
+      d3.axisLeft(y)
+      .tickFormat(getPortugueseCountryName)
+    )
+    .selectAll("text")
+    .style("font-size", "11px");
 
   // eixo X (lucro)
   g.append("g")
     .attr("transform", `translate(0,${innerHeight})`)
-    .call(d3.axisBottom(x));
+    .call(
+      d3.axisBottom(x)
+      .ticks(5)
+      .tickFormat(d3.format(".0s"))
+    )
+    .selectAll("text")
+    .style("font-size", "11px");
 }
-
 async function renderProfitByCategory(ecommerce, choosenTrafficSource) {
   // Inicializa tooltip conforme declarado em index.html
   const tooltip = d3.select("#tooltip");
@@ -322,16 +326,17 @@ async function renderProfitByCategory(ecommerce, choosenTrafficSource) {
   const svg = d3.select("#category-chart");
 
   // Define largura e altura do gráfico.
-  svg.attr("width", width)
+  svg.attr("width", width + 90)
     .attr("height", height);
 
+  
   // Armazena as categorias.
-  const categories = data.map(d => d.Product_Category);
+  const categories = data.map(d => getPortugueseCategoryName(d.Product_Category));
 
   // Constrói o eixo X com as categorias.
   const x = d3.scaleBand()
     .domain(categories)
-    .range([0, innerWidth])
+    .range([0, innerWidth + 90])
     .padding(0.2);
 
   // Constrói o eixo y com o lucro (do maior para o menor)
@@ -346,11 +351,12 @@ async function renderProfitByCategory(ecommerce, choosenTrafficSource) {
       `translate(${margin.left},${margin.top})`
     );
 
+  // Configura barras verticais
   g.selectAll("rect")
     .data(data)
     .enter()
     .append("rect")
-    .attr("x", d => x(d.Product_Category)) // Define eixo X como Categoria
+    .attr("x", d => x(getPortugueseCategoryName(d.Product_Category))) // Define eixo X como Categoria
     .attr("y", d => y(d.Profit)) // Define eixo Y como o Lucro
     .attr("width", x.bandwidth())
     .attr("fill", "#1B5E20") // Define cor verde para as barras
@@ -360,7 +366,7 @@ async function renderProfitByCategory(ecommerce, choosenTrafficSource) {
       tooltip
         .style("opacity", 1)
         .html(`
-        <strong>${d.Product_Category}</strong><br/>
+        <strong>${getPortugueseCategoryName(d.Product_Category)}</strong><br/>
         Lucro: ${d3.format(",.2f")(d.Profit)}
       `);
     })
@@ -382,24 +388,31 @@ async function renderProfitByCategory(ecommerce, choosenTrafficSource) {
       tooltip
         .style("opacity", 1)
         .html(`
-      <strong>${d.Product_Category}</strong><br/>
+      <strong>${getPortugueseCategoryName(d.Product_Category)}</strong><br/>
       Total: ${d3.format(",.2f")(d.Profit)}<br/><br/>
       <u>Subcategorias:</u><br/>
       ${subs.map(s =>
-        `${s.Product_Subcategory}: ${d3.format(",.2f")(s.Profit)}`
+        `${getPortugueseSubCategoryName(s.Product_Subcategory)}: ${d3.format(",.2f")(s.Profit)}`
       ).join("<br/>")}
     `);
     })
 
   g.append("g")
-    .call(d3.axisLeft(y));
+    .call(
+      d3.axisLeft(y)
+      .ticks(5)
+      .tickFormat(d3.format(".0s")) // Converte de 1.000.000 para 1M, por exemplo
+    )
+    .selectAll("text")
+    .style("font-size", "11px");
 
   g.append("g")
-    .attr(
-      "transform",
-      `translate(0,${innerHeight})`
-    )
-    .call(d3.axisBottom(x));
+    .attr("transform", `translate(0,${innerHeight})`)
+    .call(d3.axisBottom(x))
+    .selectAll("text")
+    .style("font-size", "11px")
+    .attr("text-anchor", "end")
+    .attr("transform", "rotate(-40)"); // Rotaciona texto do eixo X.
 }
 
 
@@ -415,7 +428,7 @@ async function loadTrafficSourceFilter(ecommerce) {
   // Referencia a tag html.
   const select = d3.select("#traffic-filter");
 
-  // Atualiza componente de UI com dados retornados do BD (fontes de tráfego ) 
+  // Atualiza componente de UI com opções de fontes de marketing retornadas pelo BD 
   select.selectAll("option.source")
     .data(trafficSources)
     .enter()
@@ -450,4 +463,17 @@ window.onload = async () => {
       await renderProfitByCategory(ecommerce, selectedSource);
       await renderProfitByCountry(ecommerce, selectedSource);
     });
+}
+
+async function main() {
+  try {
+
+    const ecommerce = new ECommerce();
+    await ecommerce.init();
+    return ecommerce;
+
+  } catch (error) {
+    console.error(error);
+    loadingStatus.text("Erro ao carregar dados. Verifique o console.");
+  }
 }
