@@ -8,7 +8,8 @@ import {
   width,
   filterData,
   getPortugueseSubCategoryName,
-  getPortugueseCategoryName
+  getPortugueseCategoryName,
+  profitAxisLeft
 } from "./utils"
 
 
@@ -138,11 +139,7 @@ export async function renderProfitByCategory(ecommerce, filters) {
     })
 
   g.append("g")
-    .call(
-      d3.axisLeft(y)
-      .ticks(5)
-      .tickFormat(d3.format(".0s")) // Converte de 1.000.000 para 1M, por exemplo
-    )
+    .call(profitAxisLeft(y, 5))
     .selectAll("text")
     .style("font-size", "11px");
 

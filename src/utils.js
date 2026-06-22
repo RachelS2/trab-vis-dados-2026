@@ -8,6 +8,9 @@ import {
 import {
   renderProfitByTime
 } from "./profit-by-time-graph";
+import {
+  renderInsights
+} from "./insights";
 
 const COUNTRIES_MAP_EN_PT = {
   "United States": "Estados Unidos",
@@ -87,7 +90,8 @@ export function filterData(
   filters, {
     excludeCategory = false,
     excludeCountry = false,
-    excludePeriod = false
+    excludePeriod = false,
+    excludeTraffic = false
   } = {}
 ) {
   // Monta clausula WHERE quando o usuário filtra alguma informação pela UI. 
@@ -101,7 +105,7 @@ export function filterData(
   console.log(selectedTrafficSource + " " + selectedCategory + " " + selectedCountry + " " + selectedPeriod.start + " " + selectedPeriod.end)
 
   // Verifica se variáveis globais foram preenchidas
-  if (selectedTrafficSource) {
+  if (selectedTrafficSource && !excludeTraffic) {
     console.log(selectedTrafficSource)
     conditions.push(
       `Traffic_Source = '${selectedTrafficSource}'`
@@ -158,6 +162,8 @@ export function filterData(
 }
 
 export async function updateCharts(ecommerce, filters) {
+  d3.select("#tooltip").style("opacity", 0).html("");
+
   // Reinicia todos os gráficos
   d3.select("#time-chart").selectAll("*").remove();
   d3.select("#category-chart").selectAll("*").remove();
@@ -173,6 +179,10 @@ export async function updateCharts(ecommerce, filters) {
     ),
 
     renderProfitByCountry(
+      ecommerce, filters
+    ),
+
+    renderInsights(
       ecommerce, filters
     )
   ]);
@@ -210,3 +220,42 @@ export const innerWidth = width - margin.left - margin.right;
 
 // Define altura interna
 export const innerHeight = height - margin.top - margin.bottom;
+
+export function formatProfitAxisTick(value) {
+  if (value === 0) return "0";
+
+  const abs = Math.abs(value);
+  if (abs >= 1_000_000) {
+    const scaled = value / 1_000_000;
+    return Number.isInteger(scaled) ? `${scaled}M` : `${scaled.toFixed(1)}M`;
+  }
+  if (abs >= 1_000) {
+    const scaled = value / 1_000;
+    return Number.isInteger(scaled) ? `${scaled}k` : `${scaled.toFixed(1)}k`;
+  }
+
+  return `${Math.round(value)}`;
+}
+
+function uniqueProfitTicks(scale, tickCount) {
+  const seen = new Set();
+
+  return scale.ticks(tickCount).filter((tick) => {
+    const label = formatProfitAxisTick(tick);
+    if (seen.has(label)) return false;
+    seen.add(label);
+    return true;
+  });
+}
+
+export function profitAxisLeft(scale, tickCount = 5) {
+  return d3.axisLeft(scale)
+    .tickValues(uniqueProfitTicks(scale, tickCount))
+    .tickFormat(formatProfitAxisTick);
+}
+
+export function profitAxisBottom(scale, tickCount = 5) {
+  return d3.axisBottom(scale)
+    .tickValues(uniqueProfitTicks(scale, tickCount))
+    .tickFormat(formatProfitAxisTick);
+}

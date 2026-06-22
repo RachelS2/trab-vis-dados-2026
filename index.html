@@ -31,12 +31,30 @@
 
     <section class="chart-panel">
       <h2>Por Categoria de produto</h2>
-      <svg id="category-chart" width="900" height="400"></svg>
+      <svg id="category-chart"></svg>
     </section>
 
-    <section class="chart-panel country-panel">
-      <h2>Por País</h2>
-      <svg id="country-chart" width="900" height="400"></svg>
+    <section class="country-row">
+      <div class="chart-panel country-panel">
+        <h2>Por País</h2>
+        <svg id="country-chart"></svg>
+      </div>
+
+      <aside id="insights-panel" class="chart-panel insights-panel">
+        <h2>Insights</h2>
+
+        <div class="insights-columns">
+          <section class="insights-section">
+            <h3>Filtros ativos</h3>
+            <ul id="active-filters-list" class="insights-list"></ul>
+          </section>
+
+          <section class="insights-section">
+            <h3>Maior lucro</h3>
+            <ul id="profit-insights-list" class="insights-list"></ul>
+          </section>
+        </div>
+      </aside>
     </section>
 
 

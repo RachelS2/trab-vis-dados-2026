@@ -7,7 +7,8 @@ import {
   width,
   filterData,
   updateCharts,
-  getPortugueseCountryName
+  getPortugueseCountryName,
+  profitAxisBottom
 } from "./utils"
 
 export async function renderProfitByCountry(ecommerce, filters) {
@@ -114,11 +115,7 @@ export async function renderProfitByCountry(ecommerce, filters) {
   // eixo X (lucro)
   g.append("g")
     .attr("transform", `translate(0,${innerHeight})`)
-    .call(
-      d3.axisBottom(x)
-      .ticks(5)
-      .tickFormat(d3.format(".0s"))
-    )
+    .call(profitAxisBottom(x, 5))
     .selectAll("text")
     .style("font-size", "11px");
 }
