@@ -14,16 +14,10 @@ import {
 export async function renderProfitByTime(ecommerce, filters) {
   /* Transformação 3.3.2.2 no Relatório: Agregações de Lucro por TEMPO (WHEN). */
 
-  // Anula a variável global para que a cláusula WHERE não filtre apenas 1 período para construção do gráfico:
-  let originalSelectedPeriod = selectedPeriod; // Armazena valor 
-  if (selectedPeriod) {
-    selectedPeriod = null;
-  }
-  const whereClause = filterData(selectedTrafficSource, selectedCategory, selectedCountry, selectedPeriod);
-
-  // Reatribui variável global para não afetar os outros gráficos
-  selectedPeriod = originalSelectedPeriod;
-
+  const whereClause = filterData(filters, {
+    excludePeriod: true
+  });
+  const selectedPeriod = filters.period;
   // Agrupa lucro por trimestres de cada ano do dataset (2023 a 2026)
   const data = await ecommerce.query(`
     SELECT

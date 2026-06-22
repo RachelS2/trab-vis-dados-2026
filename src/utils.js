@@ -83,7 +83,13 @@ export function getPortugueseSubCategoryName(d) {
   return SUB_CATEGORIES_MAP_EN_PT[d] ?? d;
 }
 
-export function filterData(filters) {
+export function filterData(
+  filters, {
+    excludeCategory = false,
+    excludeCountry = false,
+    excludePeriod = false
+  } = {}
+) {
   // Monta clausula WHERE quando o usuário filtra alguma informação pela UI. 
 
   const selectedTrafficSource = filters.traffic;
@@ -102,13 +108,13 @@ export function filterData(filters) {
     );
   }
 
-  if (selectedCategory) {
+  if (selectedCategory && !excludeCategory) {
     conditions.push(
       `Product_Category = '${selectedCategory}'`
     );
   }
 
-  if (selectedCountry) {
+  if (selectedCountry && !excludeCountry) {
     conditions.push(
       `Country = '${selectedCountry}'`
     );
@@ -117,7 +123,7 @@ export function filterData(filters) {
   const initialQuarter = selectedPeriod.start;
   const finalQuarter = selectedPeriod.end;
 
-  if (selectedPeriod?.start) {
+  if (selectedPeriod?.start && !excludePeriod) {
 
     const start = parseQuarter(selectedPeriod.start);
     const startValue = quarterValue(start.year, start.quarter);

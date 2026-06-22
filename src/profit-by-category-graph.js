@@ -17,17 +17,8 @@ export async function renderProfitByCategory(ecommerce, filters) {
   // Inicializa tooltip conforme declarado em index.html
   const tooltip = d3.select("#tooltip");
 
-  // Anula a variável global para que a cláusula WHERE não filtre apenas 1 categoria para construção do gráfico:
-  let originalSelectedCategory = selectedCategory; // Armazena valor 
-  if (selectedCategory) {
-    selectedCategory = null;
-  }
-
-  // Monta a cláusula WHERE, considerando filtros de fontes de marketing, tempo e país:
-  const whereClause = filterData(filters);
-
-  // Reatribui variável global para não afetar os outros gráficos
-  selectedCategory = originalSelectedCategory;
+  // Exclui categoria da cláusula WHERE para exibir todas as categorias no gráfico
+  const whereClause = filterData(filters, {excludeCategory:true});
 
   // Seleciona os dados de CATEGORIAS: 
   /* Transformação 3.3.2.2 no Relatório: Agregações de Lucro por CATEGORIA (WHAT). */

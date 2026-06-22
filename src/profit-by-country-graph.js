@@ -16,17 +16,8 @@ export async function renderProfitByCountry(ecommerce, filters) {
   // Inicializa tooltip conforme declarado em index.html
   const tooltip = d3.select("#tooltip");
 
-  // Anula a variável global para que a cláusula WHERE não filtre apenas 1 país para construção do gráfico:
-  let originalSelectedCountry = selectedCountry; // Armazena valor 
-  if (selectedCountry) {
-    selectedCountry = null;
-  }
-
   // Monta a cláusula WHERE, considerando filtros de fontes de marketing, tempo e país:
-  const whereClause = filterData(selectedTrafficSource, selectedCategory, selectedCountry, selectedPeriod);
-
-// Reatribui variável global para não afetar os outros gráficos
-selectedCountry = originalSelectedCountry;
+  const whereClause = filterData(filters, {excludeCountry:true});
 
 // seleciona dados a partir de agrupamentos e somas
 const data = await ecommerce.query(`
