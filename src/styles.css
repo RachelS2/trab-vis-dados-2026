@@ -184,6 +184,15 @@ body {
   pointer-events: none;
 }
 
+.grid line {
+  stroke: #ddd;
+  stroke-dasharray: 3 3;
+}
+
+.grid path {
+  display: none;
+}
+
 #tooltip {
   position: absolute;
   background: rgba(0,0,0,0.8);
