@@ -8,7 +8,8 @@ import {
   width,
   filterData,
   getPortugueseSubCategoryName,
-  getPortugueseCategoryName
+  getPortugueseCategoryName,
+  profitAxisLeft
 } from "./utils"
 
 export async function renderProfitByTime(ecommerce, filters) {
@@ -112,11 +113,7 @@ export async function renderProfitByTime(ecommerce, filters) {
 
   // Eixo Y 
   g.append("g")
-    .call(
-      d3.axisLeft(y)
-      .ticks(5)
-      .tickFormat(d3.format(".0s")) // (converte valor de 1000 para 1k para maior clareza visual)
-    );
+    .call(profitAxisLeft(y, 5));
 
   // ano que cada trimestre corresponde
   const years = d3.groups(data, d => d.Year);
