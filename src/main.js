@@ -37,27 +37,23 @@ let selectedTrafficSource = null;
 let selectedCategory = null;
 let selectedCountry = null;
 
-function filterDataBy() {
-  // Monta clausula WHERE quando o usuário filtra alguma informação pela UI. 
-
+function filterDataBy({ excludeCategory = false, excludeCountry = false } = {}) {
+  // Monta clausula WHERE quando o usuário filtra alguma informação pela UI.
   const conditions = [];
-  console.log(selectedTrafficSource + " " + selectedCategory + " " + selectedCountry)
 
-  // Verifica se variáveis globais foram preenchidas
   if (selectedTrafficSource) {
-    console.log(selectedTrafficSource)
     conditions.push(
       `Traffic_Source = '${selectedTrafficSource}'`
     );
   }
 
-  if (selectedCategory) {
+  if (selectedCategory && !excludeCategory) {
     conditions.push(
       `Product_Category = '${selectedCategory}'`
     );
   }
 
-  if (selectedCountry) {
+  if (selectedCountry && !excludeCountry) {
     conditions.push(
       `Country = '${selectedCountry}'`
     );
@@ -66,10 +62,8 @@ function filterDataBy() {
   if (conditions.length === 0) {
     return "";
   }
-  const WHERE_CLAUSE = `WHERE ${conditions.join(" AND ")}`;
-  console.log("where clause: " + WHERE_CLAUSE);
-  return WHERE_CLAUSE
 
+  return `WHERE ${conditions.join(" AND ")}`;
 }
 
 async function renderProfitOverTime(ecommerce) {
@@ -237,17 +231,8 @@ async function renderProfitByCountry(ecommerce) {
   // Inicializa tooltip conforme declarado em index.html
   const tooltip = d3.select("#tooltip");
 
-  // Anula a variável global para que a cláusula WHERE não filtre apenas 1 país para construção do gráfico:
-  let originalSelectedCountry = selectedCountry; // Armazena valor 
-  if (selectedCountry) {
-    selectedCountry = null;
-  }
-
-  // Monta a cláusula WHERE, considerando filtros de fontes de marketing, tempo e país:
-  const whereClause = filterDataBy();
-
-  // Reatribui variável global para não afetar os outros gráficos
-  selectedCountry = originalSelectedCountry;
+  // Exclui país da cláusula WHERE para exibir todos os países no gráfico
+  const whereClause = filterDataBy({ excludeCountry: true });
 
   // seleciona dados a partir de agrupamentos e somas
   const data = await ecommerce.query(`
@@ -357,17 +342,8 @@ async function renderProfitByCategory(ecommerce) {
   // Inicializa tooltip conforme declarado em index.html
   const tooltip = d3.select("#tooltip");
 
-  // Anula a variável global para que a cláusula WHERE não filtre apenas 1 categoria para construção do gráfico:
-  let originalSelectedCategory = selectedCategory; // Armazena valor 
-  if (selectedCategory) {
-    selectedCategory = null;
-  }
-
-  // Monta a cláusula WHERE, considerando filtros de fontes de marketing, tempo e país:
-  const whereClause = filterDataBy();
-
-  // Reatribui variável global para não afetar os outros gráficos
-  selectedCategory = originalSelectedCategory;
+  // Exclui categoria da cláusula WHERE para exibir todas as categorias no gráfico
+  const whereClause = filterDataBy({ excludeCategory: true });
 
   // Seleciona os dados de CATEGORIAS: 
   const data = await ecommerce.query(`
@@ -536,10 +512,9 @@ window.onload = async () => {
   d3.select("#traffic-filter")
     .on("change", async function () {
 
-      // captura valor selecionado pelo usuário e atribui a variável global
-      selectedTrafficSource = this.value;
+      selectedTrafficSource = this.value || null;
 
-      await updateCharts(ecommerce); // Atualiza todos os gráficos considerando essa mudança nos filtros
+      await updateCharts(ecommerce);
     });
 }
 
@@ -557,6 +532,9 @@ async function main() {
 }
 
 async function updateCharts(ecommerce) {
+  // Limpa tooltip para não exibir valores do filtro anterior
+  d3.select("#tooltip").style("opacity", 0).html("");
+
   // Reinicia todos os gráficos
   d3.select("#time-chart").selectAll("*").remove();
   d3.select("#category-chart").selectAll("*").remove();
