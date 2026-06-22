@@ -10,12 +10,12 @@
 
 <body>
   <header>
-    <h1>E-Commerce Dashboard</h1>
+    <h1>Lucro de Pedidos de e-Commerce</h1>
   </header>
 
   <div class="filters">
     <label>
-      Fonte de Tráfego / Marketing:
+      Fonte de Marketing:
       <select id="traffic-filter">
         <option value="">Todas</option>
       </select>
@@ -24,20 +24,21 @@
 
   <main class="dashboard">
 
-    <section>
-      <h2>Lucro ao Longo do Tempo (WHEN)</h2>
-      <svg id="time-chart" width="900" height="350"></svg>
+    <section class="chart-panel">
+      <h2>Por trimestre</h2>
+      <svg id="time-chart"></svg>
     </section>
 
-    <section>
-      <h2>Lucro por Categoria (WHAT)</h2>
+    <section class="chart-panel">
+      <h2>Por Categoria de produto</h2>
       <svg id="category-chart" width="900" height="400"></svg>
     </section>
 
-    <section>
-      <h2>Lucro por País (WHERE)</h2>
+    <section class="chart-panel country-panel">
+      <h2>Por País</h2>
       <svg id="country-chart" width="900" height="400"></svg>
     </section>
+
 
   </main>
 

@@ -24,7 +24,7 @@ async function main() {
 // define valores para as margens
 const margin = {
   top: 20,
-  right: 20,
+  right: 100,
   bottom: 40,
   left: 100
 };
@@ -55,6 +55,7 @@ async function renderProfitOverTime(ecommerce, choosenTrafficSource = "") {
 
   const whereClause = getTrafficSourceWhereClause(choosenTrafficSource);
 
+  // Agrupa lucro por trimestres de cada ano do dataset (2023 a 2026)
   const data = await ecommerce.query(`
     SELECT
       Year,
@@ -138,7 +139,7 @@ async function renderProfitOverTime(ecommerce, choosenTrafficSource = "") {
       .tickFormat(d3.format(".2s"))
     );
 
-  // ---- Anos abaixo dos trimestres ----
+  // ano que cada trimestre corresponde
 
   const years = d3.groups(data, d => d.Year);
 
@@ -161,7 +162,7 @@ async function renderProfitOverTime(ecommerce, choosenTrafficSource = "") {
       .text(year);
   });
 
-  // Linhas divisórias entre anos
+  // Linhas divisórias entre anos para melhor visualização 
 
   years.slice(0, -1).forEach(([year, values]) => {
 
@@ -180,6 +181,26 @@ async function renderProfitOverTime(ecommerce, choosenTrafficSource = "") {
       .attr("stroke-width", 1)
       .attr("stroke-dasharray", "4,4");
   });
+
+  // Inicializa tooltip conforme declarado em index.html
+  const tooltip = d3.select("#tooltip");
+  g.selectAll("circle")
+    .on("mouseover", (event, d) => {
+      tooltip
+        .style("opacity", 1)
+        .html(`
+        <strong>Q${d.Quarter} - ${d.Year}</strong><br>
+        Lucro: ${d3.format(",.2f")(d.Profit)}
+      `);
+    })
+    .on("mousemove", (event) => {
+      tooltip
+        .style("left", `${event.pageX + 10}px`)
+        .style("top", `${event.pageY + 10}px`);
+    })
+    .on("mouseout", () => {
+      tooltip.style("opacity", 0);
+    });
 }
 
 async function renderProfitByCountry(ecommerce, choosenTrafficSource) {
@@ -285,6 +306,7 @@ async function renderProfitByCategory(ecommerce, choosenTrafficSource) {
     Product_Subcategory,
     SUM(Profit_Amount) AS Profit
   FROM ecommerce
+  ${whereClause}
   GROUP BY Product_Category, Product_Subcategory
 `);
   // const teste = await ecommerce.query(`
