@@ -227,11 +227,7 @@ export async function renderProfitByTime(ecommerce, filters) {
       }
 
       await updateCharts(
-        ecommerce,
-        selectedTrafficSource,
-        selectedCategory,
-        selectedCountry,
-        selectedPeriod
+        ecommerce, filters
       );
     });
 }

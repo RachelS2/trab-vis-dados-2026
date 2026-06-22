@@ -18,7 +18,9 @@ export async function renderProfitByCategory(ecommerce, filters) {
   const tooltip = d3.select("#tooltip");
 
   // Exclui categoria da cláusula WHERE para exibir todas as categorias no gráfico
-  const whereClause = filterData(filters, {excludeCategory:true});
+  const whereClause = filterData(filters, {
+    excludeCategory: true
+  });
 
   // Seleciona os dados de CATEGORIAS: 
   /* Transformação 3.3.2.2 no Relatório: Agregações de Lucro por CATEGORIA (WHAT). */
@@ -88,8 +90,8 @@ export async function renderProfitByCategory(ecommerce, filters) {
     .attr("opacity", d => { // Define opacidade quando a barra é ou não selecionada (filtrada)
 
       if (
-        selectedCategory &&
-        selectedCategory !== d.Product_Category
+        filters.category &&
+        filters.category !== d.Product_Category
       ) {
         return 0.3;
       }
@@ -109,11 +111,11 @@ export async function renderProfitByCategory(ecommerce, filters) {
 
     // Monitora clique na barra da categoria, para filtrar os dados a partir da categoria escolhida.
     .on("click", async (event, d) => {
-      console.log("categoria selecionada: " + selectedCategory);
-      if (selectedCategory === d.Product_Category) {
-        selectedCategory = null;
+      console.log("categoria selecionada: " + filters.category);
+      if (filters.category === d.Product_Category) {
+        filters.category = null;
       } else {
-        selectedCategory = d.Product_Category;
+        filters.category = d.Product_Category;
       }
 
       await updateCharts(ecommerce, filters); // atualiza dados com filtro aplicado
